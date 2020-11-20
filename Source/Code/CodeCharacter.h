@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Components/SceneComponent.h"
 #include "CodeCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -19,20 +20,34 @@ class ACodeCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		float XAxis;
 	
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		float ZAxis;
 	
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		bool isAiming;
 
-	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		int animState;
 
-	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		bool isHolding;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+		bool isShooting;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		bool canShoot;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		TSubclassOf<AActor> projectile;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class USceneComponent* attachPoint;
+
+	AActor* holdItem;
 public:
 	ACodeCharacter();
 
@@ -46,6 +61,7 @@ public:
 	
 	float smoothCameraLerp;
 	FTimerHandle smoothCameraTimer;
+	FTimerHandle shootTimerHandle;
 
 protected:
 
@@ -65,6 +81,20 @@ protected:
 	void ReleaseAimCamera();
 
 	void ReleaseAim();
+
+	void TogglePause();
+
+	void Shoot();
+
+	void ResetShoot();
+
+	void TogglePickup();
+
+	void Pickup();
+
+	void Drop();
+
+	
 
 	/** 
 	 * Called via input to turn at a given rate. 

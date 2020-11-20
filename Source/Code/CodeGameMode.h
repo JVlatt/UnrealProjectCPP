@@ -11,8 +11,16 @@ class ACodeGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		TSubclassOf<UUserWidget> PauseUIClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UUserWidget* PauseWidget;
+
 public:
 	ACodeGameMode();
+	UFUNCTION(BlueprintCallable)
+	void Pause();
+	void Respawn();
 };
 
 

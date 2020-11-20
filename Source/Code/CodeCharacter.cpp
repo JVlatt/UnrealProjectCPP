@@ -8,6 +8,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "CodeGameMode.h"
+#include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ACodeCharacter
@@ -43,6 +46,9 @@ ACodeCharacter::ACodeCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	attachPoint = CreateDefaultSubobject<USceneComponent>(TEXT("AttachPoint"));
+	attachPoint->SetupAttachment(RootComponent);
+	isHolding = false;
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
@@ -54,19 +60,22 @@ void ACodeCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	
+
 	//PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ACharacter::Crouch);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ACodeCharacter::ToggleCrouch);
+	PlayerInputComponent->BindAction("Shoot", IE_Pressed, this, &ACodeCharacter::Shoot);
+	PlayerInputComponent->BindAction("Pickup", IE_Pressed, this, &ACodeCharacter::TogglePickup);
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ACodeCharacter::ToggleAim);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ACodeCharacter::ReleaseAim);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ACodeCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ACodeCharacter::MoveRight);
 
+	PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &ACodeCharacter::TogglePause).bExecuteWhenPaused = true;
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -106,12 +115,12 @@ void ACodeCharacter::OnResetVR()
 
 void ACodeCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		Jump();
+	Jump();
 }
 
 void ACodeCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		StopJumping();
+	StopJumping();
 }
 
 void ACodeCharacter::TurnAtRate(float Rate)
@@ -148,12 +157,12 @@ void ACodeCharacter::MoveForward(float Value)
 void ACodeCharacter::MoveRight(float Value)
 {
 	XAxis = Value;
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	if ((Controller != NULL) && (Value != 0.0f))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
+
 		// get right vector 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
@@ -163,6 +172,7 @@ void ACodeCharacter::MoveRight(float Value)
 
 void ACodeCharacter::ToggleAim()
 {
+	if (!isHolding) return;
 	if (GetCharacterMovement()->IsCrouching())
 		UnCrouch();
 
@@ -171,7 +181,7 @@ void ACodeCharacter::ToggleAim()
 	animState = 2;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->SetJumpAllowed(false);
-	if(GetWorldTimerManager().IsTimerActive(smoothCameraTimer))
+	if (GetWorldTimerManager().IsTimerActive(smoothCameraTimer))
 		GetWorldTimerManager().ClearTimer(smoothCameraTimer);
 	smoothCameraTimer = FTimerHandle();
 	smoothCameraLerp = 0.0f;
@@ -181,7 +191,7 @@ void ACodeCharacter::ToggleAim()
 void ACodeCharacter::ToggleAimCamera()
 {
 	smoothCameraLerp += 0.01f;
-	FollowCamera->SetRelativeLocation(FMath::Lerp(FollowCamera->GetRelativeLocation(),FVector(0,60,90),smoothCameraLerp));
+	FollowCamera->SetRelativeLocation(FMath::Lerp(FollowCamera->GetRelativeLocation(), FVector(0, 60, 90), smoothCameraLerp));
 	if (smoothCameraLerp >= 1)
 		GetWorldTimerManager().ClearTimer(smoothCameraTimer);
 }
@@ -206,4 +216,83 @@ void ACodeCharacter::ReleaseAim()
 	smoothCameraTimer = FTimerHandle();
 	smoothCameraLerp = 0.0f;
 	GetWorldTimerManager().SetTimer(smoothCameraTimer, this, &ACodeCharacter::ReleaseAimCamera, 0.01f, true, 0);
+}
+
+void ACodeCharacter::TogglePause()
+{
+	ACodeGameMode* gM = Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode());
+	if (gM)
+		gM->Pause();
+}
+
+void ACodeCharacter::Shoot()
+{
+	if (!isAiming || isShooting) return;
+
+	FVector location = GetActorLocation();
+	FHitResult hitResult;
+
+
+	FVector start = location;
+	FVector end = start + (FollowCamera->GetForwardVector() * 5000);
+
+	FCollisionQueryParams traceParams;
+	traceParams.AddIgnoredActor(this);
+	bool hit = GetWorld()->LineTraceSingleByChannel(hitResult, start, end, ECC_Visibility, traceParams);
+	if (hit)
+	{
+		FActorSpawnParameters spawnParameters;
+		AActor* actorRef = GetWorld()->SpawnActor<AActor>(projectile,location,Controller->GetControlRotation(), spawnParameters);
+		isShooting = true;
+		shootTimerHandle = FTimerHandle();
+		GetWorldTimerManager().SetTimer(shootTimerHandle, this, &ACodeCharacter::ResetShoot, 0.1f, true, 1);
+	}
+}
+
+void ACodeCharacter::ResetShoot()
+{
+	isShooting = false;
+	if (GetWorldTimerManager().IsTimerActive(shootTimerHandle))
+		GetWorldTimerManager().ClearTimer(shootTimerHandle);
+}
+
+void ACodeCharacter::TogglePickup()
+{
+	if (isHolding)
+	{
+		Drop();
+	}
+	else {
+		Pickup();
+	}
+}
+
+void ACodeCharacter::Pickup()
+{
+	FVector location = GetActorLocation();
+	FHitResult hitResult;
+
+	FVector start = location;
+	FVector end = start + (FollowCamera->GetForwardVector() * 100);
+
+	FCollisionQueryParams traceParams;
+	traceParams.AddIgnoredActor(this);
+	bool hit = GetWorld()->LineTraceSingleByChannel(hitResult, start, end, ECC_Visibility, traceParams);
+	DrawDebugLine(GetWorld(), start, end, FColor::Blue, false, 2.0f);
+	if (hit && hitResult.Actor->ActorHasTag("Pickup"))
+	{
+		FAttachmentTransformRules rules(EAttachmentRule::SnapToTarget, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, true);
+		hitResult.Actor->AttachToComponent(attachPoint, rules);
+		isHolding = true;
+		holdItem = hitResult.Actor.Get();
+	}
+}
+
+void ACodeCharacter::Drop()
+{
+	if (holdItem)
+	{
+		holdItem->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
+		isHolding = false;
+	}
 }
