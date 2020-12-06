@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Components/SceneComponent.h"
+#include "InventorySystem/InventoryComponent.h"
 #include "CodeCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -19,6 +20,8 @@ class ACodeCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		float XAxis;
@@ -51,6 +54,13 @@ class ACodeCharacter : public ACharacter
 public:
 	ACodeCharacter();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float strength;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UInventoryComponent* Inventory;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UAnimMontage* PunchMontage;
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -62,6 +72,9 @@ public:
 	float smoothCameraLerp;
 	FTimerHandle smoothCameraTimer;
 	FTimerHandle shootTimerHandle;
+
+	UFUNCTION(BlueprintCallable, Category = "Items")
+		void UseItem(class UItem* Item);
 
 protected:
 
@@ -84,6 +97,8 @@ protected:
 
 	void TogglePause();
 
+	void ToggleInventory();
+
 	void Shoot();
 
 	void ResetShoot();
@@ -94,7 +109,10 @@ protected:
 
 	void Drop();
 
-	
+	UFUNCTION()
+	void OnPunchNotify(FName notifyName, const FBranchingPointNotifyPayload& branching);
+
+	virtual void BeginPlay() override;
 
 	/** 
 	 * Called via input to turn at a given rate. 

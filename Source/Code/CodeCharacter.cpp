@@ -11,6 +11,8 @@
 #include "CodeGameMode.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "InventorySystem/Item.h"
+#include "InventorySystem/InventoryComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ACodeCharacter
@@ -51,8 +53,16 @@ ACodeCharacter::ACodeCharacter()
 	isHolding = false;
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
+	attachPoint->SetupAttachment(RootComponent);
+
 }
 
+void ACodeCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	GetMesh()->GetAnimInstance()->OnPlayMontageNotifyBegin.AddDynamic(this, &ACodeCharacter::OnPunchNotify);
+}
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -76,6 +86,7 @@ void ACodeCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 	PlayerInputComponent->BindAxis("MoveRight", this, &ACodeCharacter::MoveRight);
 
 	PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &ACodeCharacter::TogglePause).bExecuteWhenPaused = true;
+	PlayerInputComponent->BindAction("Inventory", IE_Pressed, this, &ACodeCharacter::ToggleInventory);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -105,6 +116,15 @@ void ACodeCharacter::ToggleCrouch()
 	{
 		animState = 1;
 		Crouch();
+	}
+}
+
+void ACodeCharacter::UseItem(UItem* Item)
+{
+	if (Item)
+	{
+		Item->Use(this);
+		Item->OnUse(this);
 	}
 }
 
@@ -225,27 +245,42 @@ void ACodeCharacter::TogglePause()
 		gM->Pause();
 }
 
+void ACodeCharacter::ToggleInventory()
+{
+	ACodeGameMode* gM = Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode());
+	if (gM)
+		gM->ToggleInventory();
+}
+
 void ACodeCharacter::Shoot()
 {
-	if (!isAiming || isShooting) return;
-
-	FVector location = GetActorLocation();
-	FHitResult hitResult;
-
-
-	FVector start = location;
-	FVector end = start + (FollowCamera->GetForwardVector() * 5000);
-
-	FCollisionQueryParams traceParams;
-	traceParams.AddIgnoredActor(this);
-	bool hit = GetWorld()->LineTraceSingleByChannel(hitResult, start, end, ECC_Visibility, traceParams);
-	if (hit)
+	if (isHolding)
 	{
-		FActorSpawnParameters spawnParameters;
-		AActor* actorRef = GetWorld()->SpawnActor<AActor>(projectile,location,Controller->GetControlRotation(), spawnParameters);
-		isShooting = true;
-		shootTimerHandle = FTimerHandle();
-		GetWorldTimerManager().SetTimer(shootTimerHandle, this, &ACodeCharacter::ResetShoot, 0.1f, true, 1);
+		if (!isAiming || isShooting) return;
+
+		FVector location = GetActorLocation();
+		FHitResult hitResult;
+
+
+		FVector start = location;
+		FVector end = start + (FollowCamera->GetForwardVector() * 5000);
+
+		FCollisionQueryParams traceParams;
+		traceParams.AddIgnoredActor(this);
+		bool hit = GetWorld()->LineTraceSingleByChannel(hitResult, start, end, ECC_Visibility, traceParams);
+		if (hit)
+		{
+			FActorSpawnParameters spawnParameters;
+			AActor* actorRef = GetWorld()->SpawnActor<AActor>(projectile, location, Controller->GetControlRotation(), spawnParameters);
+			isShooting = true;
+			shootTimerHandle = FTimerHandle();
+			GetWorldTimerManager().SetTimer(shootTimerHandle, this, &ACodeCharacter::ResetShoot, 0.1f, true, 1);
+		}
+	}
+	else if(!GetMesh()->GetAnimInstance()->Montage_IsPlaying(PunchMontage))
+	{
+		
+		GetMesh()->GetAnimInstance()->Montage_Play(PunchMontage);
 	}
 }
 
@@ -294,5 +329,27 @@ void ACodeCharacter::Drop()
 	{
 		holdItem->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, true));
 		isHolding = false;
+	}
+}
+
+void ACodeCharacter::OnPunchNotify(FName notifyName, const FBranchingPointNotifyPayload& branching)
+{
+	if (notifyName == FName("Punch"))
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Punch Notify"));
+		FRotator rotation = FRotator(0);
+		rotation.Yaw = GetControlRotation().Yaw;
+		SetActorRotation(rotation);
+		TArray<TEnumAsByte<EObjectTypeQuery>> targetObjectsArray;
+		TArray<AActor*> ignoredActors;
+		TArray<AActor*> overlappedActors;
+		targetObjectsArray.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+		ignoredActors.Add(this);
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetMesh()->GetSocketLocation(FName("RightHandSocket")), 100, targetObjectsArray, nullptr, ignoredActors, overlappedActors);
+		for(AActor* AI : overlappedActors)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, AI->GetName());
+			AI->TakeDamage(strength,FDamageEvent(),Controller,this);
+		}
 	}
 }
