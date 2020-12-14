@@ -17,14 +17,14 @@ struct FItemData : public FTableRowBase
 		UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		int ItemID;
 
-		UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		FString ItemName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-		FString Type;
+		FString UseText;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-		int Weight;
+		FString Category;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		int AdditionalHP;
@@ -34,9 +34,6 @@ struct FItemData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		int Damages;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-		FString Location;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		FString Description;

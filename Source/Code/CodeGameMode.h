@@ -45,6 +45,7 @@ public:
 
 	virtual void BeginPlay() override;
 
+	UFUNCTION(BlueprintCallable)
 	void ToggleInventory();
 
 };

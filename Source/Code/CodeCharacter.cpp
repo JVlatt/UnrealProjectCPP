@@ -55,7 +55,10 @@ ACodeCharacter::ACodeCharacter()
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	attachPoint->SetupAttachment(RootComponent);
-
+	Health = 100;
+	Armor = 0;
+	Damages = 5;
+	isAlive = true;
 }
 
 void ACodeCharacter::BeginPlay()
@@ -128,6 +131,12 @@ void ACodeCharacter::UseItem(UItem* Item)
 	}
 }
 
+void ACodeCharacter::Heal(float amount)
+{
+	Health += amount;
+	FMath::Clamp(Health, 0.0f, 100.0f);
+}
+
 void ACodeCharacter::OnResetVR()
 {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
@@ -141,6 +150,18 @@ void ACodeCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Locatio
 void ACodeCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	StopJumping();
+}
+
+float ACodeCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (!GetMesh()->GetAnimInstance()->Montage_IsPlaying(HurtMontage))
+	{
+		GetMesh()->GetAnimInstance()->Montage_Play(HurtMontage);
+		Health -= Damage;
+		if (Health <= 0)
+			Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode())->Respawn();
+	}
+	return 0.0f;
 }
 
 void ACodeCharacter::TurnAtRate(float Rate)
@@ -279,7 +300,6 @@ void ACodeCharacter::Shoot()
 	}
 	else if(!GetMesh()->GetAnimInstance()->Montage_IsPlaying(PunchMontage))
 	{
-		
 		GetMesh()->GetAnimInstance()->Montage_Play(PunchMontage);
 	}
 }
@@ -336,7 +356,6 @@ void ACodeCharacter::OnPunchNotify(FName notifyName, const FBranchingPointNotify
 {
 	if (notifyName == FName("Punch"))
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, TEXT("Punch Notify"));
 		FRotator rotation = FRotator(0);
 		rotation.Yaw = GetControlRotation().Yaw;
 		SetActorRotation(rotation);
@@ -345,11 +364,10 @@ void ACodeCharacter::OnPunchNotify(FName notifyName, const FBranchingPointNotify
 		TArray<AActor*> overlappedActors;
 		targetObjectsArray.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 		ignoredActors.Add(this);
-		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetMesh()->GetSocketLocation(FName("RightHandSocket")), 100, targetObjectsArray, nullptr, ignoredActors, overlappedActors);
+		UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetMesh()->GetSocketLocation(FName("RightHandSocket")), 30, targetObjectsArray, nullptr, ignoredActors, overlappedActors);
 		for(AActor* AI : overlappedActors)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, AI->GetName());
-			AI->TakeDamage(strength,FDamageEvent(),Controller,this);
+			AI->TakeDamage(Damages,FDamageEvent(),Controller,this);
 		}
 	}
 }

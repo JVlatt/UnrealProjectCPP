@@ -18,7 +18,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		class USphereComponent* SphereComp;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 		int itemId;
 
 	UItem* itemData;

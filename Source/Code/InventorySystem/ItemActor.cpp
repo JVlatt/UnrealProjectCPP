@@ -6,7 +6,10 @@
 #include "../CodeGameMode.h"
 #include "../CodeCharacter.h"
 #include "Components/SphereComponent.h"
-
+#include "ItemData.h"
+#include "HealItem.h"
+#include "ArmorItem.h"
+#include "WeaponItem.h"
 // Sets default values
 AItemActor::AItemActor()
 {
@@ -20,8 +23,23 @@ AItemActor::AItemActor()
 void AItemActor::BeginPlay()
 {
 	Super::BeginPlay();
-    itemData = NewObject<UItem>();
-    itemData->InitData(itemId, Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode())->ItemsDataTable);
+    FString Category = Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode())->ItemsDataTable->FindRow<FItemData>(FName(FString::FromInt(itemId)), "", false)->Category;
+    if (Category == "Heal")
+    {
+        itemData = NewObject<UHealItem>();
+        itemData->InitData(itemId, Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode())->ItemsDataTable);
+    }
+    else if (Category == "Armor")
+    {
+        itemData = NewObject<UArmorItem>();
+        itemData->InitData(itemId, Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode())->ItemsDataTable);
+    }
+    else if (Category == "Weapon")
+    {
+        itemData = NewObject<UWeaponItem>();
+        itemData->InitData(itemId, Cast<ACodeGameMode>(GetWorld()->GetAuthGameMode())->ItemsDataTable);
+    }
+    
 }
 
 // Called every frame

@@ -1,6 +1,0 @@
-,ItemID,ItemName,Type,Weight,AdditionalHP,Armor,Damages,Location,Description,TexturePath
-0,0,Little Red Potion,Consumable,10,10,0,0,None,Heal for 10 HP,Texture2D'/Game/Texture2D/Items/LittleRedPot'
-1,1,Large Red Potion,Consumable,10,50,0,0,None,Heal for 50 HP,Texture2D'/Game/Texture2D/Items/LargeRedPot'
-2,2,Sword,Weapon,50,0,0,20,Weapon,Increase Damages by 20 ,Texture2D'/Game/Texture2D/Items/Sword'
-3,3,Helmet,Armor,20,0,10,0,Head,Increase Armor by 10,Texture2D'/Game/Texture2D/Items/Helmet'
-4,4,Chestplate,Armor,40,0,20,0,Chest,Increase Armor by 20,Texture2D'/Game/Texture2D/Items/Chestplate'

@@ -1,0 +1,6 @@
+,ItemID,ItemName,UseText,Category,AdditionalHP,Armor,Damages,Description,TexturePath
+0,0,Little Blood Bag,Use,Heal,10,0,0,Heal for 10 HP,Texture2D'/Game/Texture2D/Items/Blood1'
+1,1,Large Blood Bag,Use,Heal,50,0,0,Heal for 50 HP,Texture2D'/Game/Texture2D/Items/Blood2'
+2,2,Brass Knuckle,Equip,Weapon,0,0,5,Increase Damages by 5 ,Texture2D'/Game/Texture2D/Items/Knuckle'
+3,3,Helmet,Equip,Armor,0,10,0,Increase Armor by 10,Texture2D'/Game/Texture2D/Items/Helmet'
+4,4,Chestplate,Equip,Armor,0,20,0,Increase Armor by 20,Texture2D'/Game/Texture2D/Items/ChestPlate'

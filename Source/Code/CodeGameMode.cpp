@@ -42,6 +42,7 @@ void ACodeGameMode::ToggleInventory()
 	{
 		InventoryWidget->SetVisibility(ESlateVisibility::Hidden);
 		GetWorld()->GetFirstPlayerController()->bShowMouseCursor = false;
+		GetWorld()->GetFirstPlayerController()->SetInputMode(FInputModeGameOnly());
 		isInventoryOpened = false;
 	}
 	else

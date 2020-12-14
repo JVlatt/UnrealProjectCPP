@@ -25,6 +25,9 @@ class ACodeCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		float XAxis;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		bool isAlive;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		float ZAxis;
@@ -54,13 +57,12 @@ class ACodeCharacter : public ACharacter
 public:
 	ACodeCharacter();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float strength;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UInventoryComponent* Inventory;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UAnimMontage* PunchMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UAnimMontage* HurtMontage;
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -75,6 +77,17 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Items")
 		void UseItem(class UItem* Item);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+		float Health;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+		float Armor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+		float Damages;
+
+	void Heal(float amount);
 
 protected:
 
@@ -132,7 +145,7 @@ protected:
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
-protected:
+	float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void ToggleCrouch();

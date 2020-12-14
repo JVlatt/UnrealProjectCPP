@@ -38,13 +38,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item", meta = (Multiline = true))
 		FText ItemDescription;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item", meta = (ClampMin = 0.0))
-		float Weight;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+		float HealAmount;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+		float ArmorAmount;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Item")
+		float AttackAmount;
 
 	UPROPERTY()
 		class UInventoryComponent* OwningInventory;
 
-	virtual void Use(class ACodeCharacter* Character) PURE_VIRTUAL(UItem, );
+	virtual void Use(class ACodeCharacter* Character);
 
 	UFUNCTION(BlueprintImplementableEvent)
 		void OnUse(class ACodeCharacter* Character);
